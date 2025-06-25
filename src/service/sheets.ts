@@ -1,25 +1,34 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { google } from 'googleapis';
 import dotenv from 'dotenv';
-import credentials from "../../google-sheets-credentials.json";
+import path from 'path';
 
 dotenv.config();
 
 const SHEET_ID = process.env.SHEET_ID as string;
 
-export const getSheetData = async () => {
-    const doc = new GoogleSpreadsheet(SHEET_ID, {
-        client_email: credentials.client_email,
-        private_key: credentials.private_key.replace(/\\n/g, '\n'),
-    });
+const auth = new google.auth.GoogleAuth({
+    keyFile: path.resolve(__dirname, '../../google-sheets-credentials.json'),
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
 
-    await doc.loadInfo();
-    const sheet = doc.sheetsByIndex[0]; // get first sheet
-    const rows = await sheet.getRows();
+export async function readSheetData(range: string) {
+    try {
+        const sheets = google.sheets({ version: 'v4', auth });
 
-    const result = rows.map(row => ({
-        name: row.get('Name'),
-        email: row.get('Email'),
-    }));
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range,
+        });
 
-    return result;
-};
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            console.log('No data found.');
+            return [];
+        }
+
+        return rows;
+    } catch (error) {
+        console.error('Error reading sheet data:', error);
+        throw error;
+    }
+}
