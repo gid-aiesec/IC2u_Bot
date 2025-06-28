@@ -23,6 +23,12 @@ app.get("/", (req: Request, res: Response) => {
     res.status(200).json({ status: "success" });
 });
 
+// Start Telegram bot + handlers
+import "../src/config/bot";        // starts bot polling
+import "./service/messageHandler"; // registers bot commands
+import "../src/config/sheets";
+import "../src/config/drive";
+
 // Start server
 const port: number = parseInt(PORT, 10);
 app.listen(port, () => {
