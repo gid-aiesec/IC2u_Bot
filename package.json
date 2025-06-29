@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/MrSilent2001/IC2u_Bot#readme",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",

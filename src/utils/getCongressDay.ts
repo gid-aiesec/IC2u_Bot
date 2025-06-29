@@ -1,4 +1,4 @@
-const CONGRESS_START_DATE = new Date("2025-06-28");
+const CONGRESS_START_DATE = new Date("2025-06-27");
 
 export const getCongressDay = () => {
     const now = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Colombo" });

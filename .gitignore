@@ -2,4 +2,4 @@ node_modules
 dist
 .env
 .idea
-../../google-sheets-credentials.json
+.google-sheets-credentials.json

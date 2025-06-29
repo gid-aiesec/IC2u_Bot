@@ -1,23 +1,12 @@
 import { bot } from "../config/bot";
 import { sheets } from "../config/sheets";
 import {getCongressDay} from "../utils/getCongressDay";
+import {dailyTaskRanges} from "../utils/dailtyTasksRange";
 
 const TASK_PASSWORD = process.env.TASK_PASSWORD as string;
 const SHEET_ID = process.env.SHEET_ID as string;
 
 const awaitingTaskPassword = new Set<number>();
-
-const dayTaskRanges: { [key: number]: string } = {
-    1: "TaskList!A3:D11",
-    2: "TaskList!A12:D20",
-    3: "TaskList!A21:D29",
-    4: "TaskList!A30:D38",
-    5: "TaskList!A39:D47",
-    6: "TaskList!A48:D56",
-    7: "TaskList!A57:D65",
-    8: "TaskList!A66:D74",
-    9: "TaskList!A75:D83",
-};
 
 export const taskViewer = (chatId: number) => {
     awaitingTaskPassword.add(chatId);
@@ -36,7 +25,7 @@ export const handleTaskPassword = async (chatId: number, text: string) => {
                 return;
             }
 
-            const range = dayTaskRanges[day];
+            const range = dailyTaskRanges[day];
 
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
