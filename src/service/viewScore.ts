@@ -32,7 +32,7 @@ export const viewScore = async (chatId: number) => {
     }
 };
 
-
+// Add points for each valid response
 export const addPointsToResults = async (chatId: number, points: number, day: number) => {
     const resultsSheet = "Results";
 

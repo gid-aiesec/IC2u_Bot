@@ -20,7 +20,7 @@ export const handleTaskPassword = async (chatId: number, text: string) => {
             console.log(day)
 
             if (day < 1 || day > 9) {
-                bot.sendMessage(chatId, "📋 No tasks scheduled for today.");
+                await bot.sendMessage(chatId, "📋 No tasks scheduled for today.");
                 awaitingTaskPassword.delete(chatId);
                 return;
             }
@@ -34,7 +34,7 @@ export const handleTaskPassword = async (chatId: number, text: string) => {
 
             const rows = response.data.values;
             if (!rows || rows.length === 0) {
-                bot.sendMessage(chatId, "📋 No tasks found.");
+                await bot.sendMessage(chatId, "📋 No tasks found.");
             } else {
                 const dateString = new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" });
                 const taskList = rows.map((row, i) => {
@@ -45,22 +45,22 @@ export const handleTaskPassword = async (chatId: number, text: string) => {
                     return `Task ${id}: ${task}\n Points: ${points}pts.\n Submission Type: ${submissionType}`;
                 }).join("\n\n");
 
-                bot.sendMessage(chatId, `📋 Task list (as of ${dateString}):\n\n${taskList}`, {
+                await bot.sendMessage(chatId, `📋 Task list (as of ${dateString}):\n\n${taskList}`, {
                     reply_markup: {
                         inline_keyboard: [
-                            [{ text: "📝 Submit Responses", callback_data: "submit_responses" }],
-                            [{ text: "🏆 View Score", callback_data: "view_score" }],
-                            [{ text: "⬅️ Main Menu", callback_data: "back_to_menu" }],
+                            [{text: "📝 Submit Responses", callback_data: "submit_responses"}],
+                            [{text: "🏆 View Score", callback_data: "view_score"}],
+                            [{text: "⬅️ Main Menu", callback_data: "back_to_menu"}],
                         ],
                     },
                 });
             }
         } catch (error) {
             console.error("Error reading sheet data:", error);
-            bot.sendMessage(chatId, "❌ Error fetching tasks. Please try again later.");
+            await bot.sendMessage(chatId, "❌ Error fetching tasks. Please try again later.");
         }
     } else {
-        bot.sendMessage(chatId, "❌ Incorrect password. Access denied.");
+        await bot.sendMessage(chatId, "❌ Incorrect password. Access denied.");
     }
 
     // Clear state

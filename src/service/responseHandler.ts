@@ -153,6 +153,14 @@ const handleTextResponse = async (chatId: number, text: string) => {
     }
 
     try {
+        // Check if task already marked completed
+        const alreadyValid = await isTaskAlreadyCompleted(chatId, taskNumber);
+        if (alreadyValid) {
+            await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
+            awaitingResponse.delete(chatId);
+            return;
+        }
+
         const { newRow, targetSheet } = await appendResponseToSheet(chatId, taskNumber, responseText);
         const { criteria } = await getTaskCriteriaAndPoints(taskNumber);
 
@@ -175,6 +183,14 @@ const handleImageResponse = async (chatId: number, photo: TelegramBot.PhotoSize[
     if (!taskNumber) return bot.sendMessage(chatId, "⚠️ Please send Task Number first.");
 
     try {
+        // Check if task already marked completed
+        const alreadyValid = await isTaskAlreadyCompleted(chatId, taskNumber);
+        if (alreadyValid) {
+            await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
+            awaitingResponse.delete(chatId);
+            return;
+        }
+
         const filePath = await downloadImageFromTelegram(bot, photo);
         const fileName = path.basename(filePath);
         const publicUrl = await uploadImageToDrive(filePath, fileName);
@@ -194,6 +210,31 @@ const handleImageResponse = async (chatId: number, photo: TelegramBot.PhotoSize[
 
     awaitingImageResponseTaskId.delete(chatId);
     awaitingResponse.delete(chatId);
+};
+
+// Check task already completed
+export const isTaskAlreadyCompleted = async (chatId: number, taskNumber: string): Promise<boolean> => {
+    try {
+        const day = getCongressDay();
+        const targetSheet = `Responses-D${day}`;
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `${targetSheet}!A:E`,
+        });
+
+        const rows = response.data.values || [];
+
+        // Find if any row has this chatId + taskNumber + validity TRUE
+        const hasValidResponse = rows.some(row =>
+            row[1] === chatId.toString() && row[2] === taskNumber && row[4] === "TRUE"
+        );
+
+        return hasValidResponse;
+    } catch (error) {
+        console.error("Error checking existing valid task:", error);
+        return false;
+    }
 };
 
 
