@@ -9,6 +9,7 @@ import path from "path";
 import {evaluateResponseAgainstCriteria} from "./responseEvaluator";
 import {addPointsToResults, getDailyScore} from "./viewScore";
 import {dailyTaskRanges} from "../utils/dailtyTasksRange";
+import {getTaskType, getSubmissionType} from "../utils/getTaskType";
 
 const SHEET_ID = process.env.SHEET_ID as string;
 const awaitingResponse = new Map<number, boolean>();
@@ -17,9 +18,10 @@ const awaitingImageResponseTaskId = new Map<number, string>();
 export const responseHandler = (chatId: number) => {
     bot.sendMessage(
         chatId,
-        `Submit your responses in the following format:\n\n` +
+        `📝 Submit your *Text responses* in the following format:\n\n` +
         `*Task Number*\n*Your Response*\n\n` +
-        `*Example:*\n1\nThe acronym for AIESEC values is 'SALADE'`,
+        `*Example:*\n1\nThe acronym for AIESEC values is 'SALADE'\n\n` +
+        `📸 *For Image responses*, send the *Task Number* first, then upload your image.`,
         {
             parse_mode: "Markdown"
         }
@@ -46,7 +48,25 @@ export const handleResponseMessage = async (msg: TelegramBot.Message) => {
     }
 
     if (photo && photo.length > 0) {
-        await handleImageResponse(chatId, photo);
+        const taskNumber = awaitingImageResponseTaskId.get(chatId);
+        if (!taskNumber) {
+            await bot.sendMessage(chatId, "⚠️ Please send the Task Number first before uploading the image.");
+            return;
+        }
+
+        try {
+            const submissionType = await getSubmissionType(taskNumber);
+            if (submissionType !== "image") {
+                await bot.sendMessage(chatId, `❌ Invalid Response.⚠️ Task ${taskNumber} expects a *${submissionType}* response, not an image.`);
+                return;
+            }
+
+            await handleImageResponse(chatId, photo);
+        } catch (error) {
+            console.error("Error checking submission type:", error);
+            await bot.sendMessage(chatId, "❌ Error processing your response. Please try again later.");
+        }
+
     } else if (text) {
         await handleTextResponse(chatId, text);
     }
@@ -134,16 +154,39 @@ const updateValidityAndScore = async (chatId: number, isValid: boolean, taskNumb
 // handle textual responses
 const handleTextResponse = async (chatId: number, text: string) => {
     const lines = text.split("\n");
+
+    // User sends only the task number
     if (lines.length === 1 && !isNaN(Number(lines[0].trim()))) {
         const taskNumber = lines[0].trim();
-        awaitingImageResponseTaskId.set(chatId, taskNumber);
-        return bot.sendMessage(chatId, `📸 Now send your image response for Task ${taskNumber}`);
+
+        try {
+            const submissionType = await getSubmissionType(taskNumber);
+
+            if (submissionType === "image") {
+                // Mark that this user will upload an image next for this task
+                awaitingImageResponseTaskId.set(chatId, taskNumber);
+                return bot.sendMessage(chatId, `📸 Now send your image response for Task ${taskNumber}`);
+            } else if (submissionType === "text") {
+                // Prompt user to send full text response (task number + answer)
+                return bot.sendMessage(chatId,
+                    `❌ Invalid Response Type. ✍️ Task ${taskNumber} expects a text response.`
+                );
+            } else {
+                return bot.sendMessage(chatId, `⚠️ Unknown submission type for Task ${taskNumber}. Please try again.`);
+            }
+        } catch (error) {
+            console.error("Error getting submission type:", error);
+            return bot.sendMessage(chatId, "❌ Error processing your task number. Please try again later.");
+        }
     }
 
+    // Case: User sends a full text response (task number + response)
     if (lines.length !== 2) {
-        return bot.sendMessage(chatId, "⚠️ Invalid format. Submit as:\n\n`Task Number`\n`Your Response`", { parse_mode: "Markdown" });
+        return bot.sendMessage(chatId,
+            "⚠️ Invalid format. Please submit your response as:\n\n" +
+            "`Task Number`\n`Your Response`", { parse_mode: "Markdown" }
+        );
     }
-
 
     const [taskNumber, responseText] = lines.map(l => l.trim());
     console.log(taskNumber);
@@ -153,21 +196,24 @@ const handleTextResponse = async (chatId: number, text: string) => {
     }
 
     try {
-        // Check if task already marked completed
-        const alreadyValid = await isTaskAlreadyCompleted(chatId, taskNumber);
-        if (alreadyValid) {
-            await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
-            awaitingResponse.delete(chatId);
-            return;
+        // Check onetime tasks already completed & Allow progressive tasks
+        const taskType = await getTaskType(taskNumber);
+
+        if (taskType !== "progressive") {
+            const alreadyValid = await isTaskAlreadyCompleted(chatId, taskNumber);
+            if (alreadyValid) {
+                await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
+                awaitingResponse.delete(chatId);
+                return;
+            }
         }
 
         const { newRow, targetSheet } = await appendResponseToSheet(chatId, taskNumber, responseText);
         const { criteria } = await getTaskCriteriaAndPoints(taskNumber);
 
         const isValid = await evaluateResponseAgainstCriteria(criteria, responseText, "text");
-        await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
-
         await bot.sendMessage(chatId, isValid ? "✅ Great! Your response meets the criteria." : "❌ Your response doesn't meet the criteria.");
+        await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
     } catch (err) {
         console.error("Text response error:", err);
         await bot.sendMessage(chatId, "❌ Error saving your response. Please try again later.");
@@ -183,12 +229,16 @@ const handleImageResponse = async (chatId: number, photo: TelegramBot.PhotoSize[
     if (!taskNumber) return bot.sendMessage(chatId, "⚠️ Please send Task Number first.");
 
     try {
-        // Check if task already marked completed
-        const alreadyValid = await isTaskAlreadyCompleted(chatId, taskNumber);
-        if (alreadyValid) {
-            await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
-            awaitingResponse.delete(chatId);
-            return;
+        // Check onetime tasks already completed & Allow progressive tasks
+        const taskType = await getTaskType(taskNumber);
+
+        if (taskType !== "progressive") {
+            const alreadyValid = await isTaskAlreadyCompleted(chatId, taskNumber);
+            if (alreadyValid) {
+                await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
+                awaitingResponse.delete(chatId);
+                return;
+            }
         }
 
         const filePath = await downloadImageFromTelegram(bot, photo);
@@ -199,9 +249,8 @@ const handleImageResponse = async (chatId: number, photo: TelegramBot.PhotoSize[
         const { criteria } = await getTaskCriteriaAndPoints(taskNumber);
 
         const isValid = await evaluateResponseAgainstCriteria(criteria, filePath, "image");
-        await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
-
         await bot.sendMessage(chatId, isValid ? "✅ Your image meets the criteria." : "❌ Your image doesn't meet the criteria.");
+        await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
         fs.unlinkSync(filePath);
     } catch (err) {
         console.error("Image response error:", err);

@@ -30,6 +30,7 @@
     "google-auth-library": "^9.15.1",
     "google-spreadsheet": "^4.1.4",
     "googleapis": "^150.0.1",
+    "node-cron": "^4.2.0",
     "node-telegram-bot-api": "^0.63.0",
     "uuid": "^11.1.0"
   },

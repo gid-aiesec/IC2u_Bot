@@ -2,7 +2,6 @@ import express, { Application, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import "./config/bot"; // only import this ONCE for side-effect
 
 dotenv.config();
 
@@ -26,8 +25,7 @@ app.get("/", (req: Request, res: Response) => {
 // Start Telegram bot + handlers
 import "../src/config/bot";        // starts bot polling
 import "./service/messageHandler"; // registers bot commands
-import "../src/config/sheets";
-import "../src/config/drive";
+import "../src/utils/notifier";    // daily notifications
 
 // Start server
 const port: number = parseInt(PORT, 10);

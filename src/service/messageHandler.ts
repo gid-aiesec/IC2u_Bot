@@ -58,7 +58,7 @@ bot.on("message", async (msg) => {
             const alreadyRegistered = await isUserRegistered(chatId);
 
             if (alreadyRegistered) {
-                await bot.sendMessage(chatId, "⚠️ You've already submitted your details.");
+                await bot.sendMessage(chatId, "⚠️ Invalid Input. Chack Again!");
                 await sendMainMenu(chatId);
                 return;
             }
