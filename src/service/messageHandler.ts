@@ -3,6 +3,7 @@ import {sheets} from "../config/sheets";
 import {taskViewer, isAwaitingTaskPassword, handleTaskPassword } from "./taskViewer";
 import {handleResponseMessage, isAwaitingResponse, responseHandler} from "./responseHandler";
 import {viewScore} from "./viewScore";
+import {sendMainMenu} from "./mainMenu";
 
 const SHEET_ID = process.env.SHEET_ID as string;
 const SHEET_NAME = "Registration";
@@ -152,15 +153,5 @@ export const isUserRegistered = async (chatId: number): Promise<boolean> => {
     }
 };
 
-//send main menu
-export const sendMainMenu = async (chatId: number) => {
-    await bot.sendMessage(chatId, "📋 Main Menu:", {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "📋 View Tasks", callback_data: "view_tasks" }],
-                [{ text: "📝 Submit Responses", callback_data: "submit_responses" }],
-                [{ text: "🏆 View Score", callback_data: "view_score" }],
-            ],
-        },
-    });
-};
+
+

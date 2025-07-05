@@ -10,6 +10,7 @@ import {evaluateResponseAgainstCriteria} from "./responseEvaluator";
 import {addPointsToResults, getDailyScore} from "./viewScore";
 import {dailyTaskRanges} from "../utils/dailtyTasksRange";
 import {getTaskType, getSubmissionType} from "../utils/getTaskType";
+import {sendMainMenu} from "./mainMenu";
 
 const SHEET_ID = process.env.SHEET_ID as string;
 const awaitingResponse = new Map<number, boolean>();
@@ -139,15 +140,8 @@ const updateValidityAndScore = async (chatId: number, isValid: boolean, taskNumb
     }
 
     const dayScore = await getDailyScore(chatId, day);
-    await bot.sendMessage(chatId, `🎉 Your score for today: ${dayScore} points.`, {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "📋 View Tasks", callback_data: "view_tasks" }],
-                [{ text: "📝 Submit Responses", callback_data: "submit_responses" }],
-                [{ text: "🏆 View Score", callback_data: "view_score" }],
-            ],
-        },
-    });
+    await bot.sendMessage(chatId, `🎉 Your score for today: ${dayScore} points.`);
+    await sendMainMenu(chatId);
 };
 
 
@@ -204,6 +198,7 @@ const handleTextResponse = async (chatId: number, text: string) => {
             if (alreadyValid) {
                 await bot.sendMessage(chatId, `✅ You've already submitted a valid response for Task ${taskNumber}. No need to submit again.`);
                 awaitingResponse.delete(chatId);
+                await sendMainMenu(chatId);
                 return;
             }
         }
@@ -214,6 +209,7 @@ const handleTextResponse = async (chatId: number, text: string) => {
         const isValid = await evaluateResponseAgainstCriteria(criteria, responseText, "text");
         await bot.sendMessage(chatId, isValid ? "✅ Great! Your response meets the criteria." : "❌ Your response doesn't meet the criteria.");
         await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
+        await sendMainMenu(chatId);
     } catch (err) {
         console.error("Text response error:", err);
         await bot.sendMessage(chatId, "❌ Error saving your response. Please try again later.");
@@ -252,6 +248,7 @@ const handleImageResponse = async (chatId: number, photo: TelegramBot.PhotoSize[
         await bot.sendMessage(chatId, isValid ? "✅ Your image meets the criteria." : "❌ Your image doesn't meet the criteria.");
         await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
         fs.unlinkSync(filePath);
+        await sendMainMenu(chatId);
     } catch (err) {
         console.error("Image response error:", err);
         await bot.sendMessage(chatId, "❌ Error saving your image. Please try again.");

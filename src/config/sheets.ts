@@ -1,35 +1,21 @@
 import { google } from 'googleapis';
 import dotenv from 'dotenv';
-import path from 'path';
 
 dotenv.config();
 
-const SHEET_ID = process.env.SHEET_ID as string;
+const credentialsJson = process.env.GOOGLE_SHEETS_CREDENTIALS;
 
-// Create GoogleAuth instance
+if (!credentialsJson) {
+    throw new Error("Missing GOOGLE_SHEETS_CREDENTIALS in environment variables");
+}
+
+// Parse JSON string to object
+const credentials = JSON.parse(credentialsJson);
+
+// Create GoogleAuth instance using the credentials object
 const auth = new google.auth.GoogleAuth({
-    keyFile: path.resolve(__dirname, '../../google-sheets-credentials.json'),
+    credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
 export const sheets = google.sheets({ version: 'v4', auth });
-
-// export const readSheetData = async(range: string) => {
-//     try {
-//         const response = await sheets.spreadsheets.values.get({
-//             spreadsheetId: SHEET_ID,
-//             range,
-//         });
-//
-//         const rows = response.data.values;
-//         if (!rows || rows.length === 0) {
-//             console.log('No data found.');
-//             return [];
-//         }
-//
-//         return rows;
-//     } catch (error) {
-//         console.error('Error reading sheet data:', error);
-//         throw error;
-//     }
-// }
