@@ -1,5 +1,5 @@
 export const getCongressDay = () => {
-    const congressStartDate = new Date("2025-07-05T00:00:00+05:30");
+    const congressStartDate = new Date("2025-07-06T00:00:00+05:30");
     const now = new Date();
 
     const diffInMs = now.getTime() - congressStartDate.getTime();
