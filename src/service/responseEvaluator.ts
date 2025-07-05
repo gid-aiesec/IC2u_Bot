@@ -62,7 +62,7 @@ export const evaluateResponseAgainstCriteria = async (
     response: string,
     type: "text" | "image"
 ) => {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     let result;
 
