@@ -209,7 +209,7 @@ const handleTextResponse = async (chatId: number, text: string) => {
         const isValid = await evaluateResponseAgainstCriteria(criteria, responseText, "text");
         await bot.sendMessage(chatId, isValid ? "✅ Great! Your response meets the criteria." : "❌ Your response doesn't meet the criteria.");
         await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
-        await sendMainMenu(chatId);
+        // await sendMainMenu(chatId);
     } catch (err) {
         console.error("Text response error:", err);
         await bot.sendMessage(chatId, "❌ Error saving your response. Please try again later.");
@@ -248,7 +248,6 @@ const handleImageResponse = async (chatId: number, photo: TelegramBot.PhotoSize[
         await bot.sendMessage(chatId, isValid ? "✅ Your image meets the criteria." : "❌ Your image doesn't meet the criteria.");
         await updateValidityAndScore(chatId, isValid, taskNumber, newRow, targetSheet);
         fs.unlinkSync(filePath);
-        await sendMainMenu(chatId);
     } catch (err) {
         console.error("Image response error:", err);
         await bot.sendMessage(chatId, "❌ Error saving your image. Please try again.");
